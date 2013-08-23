@@ -9,7 +9,7 @@ PROJ_NAME=sd-card-test
 # This is the directory containing the firmware package,
 # the unzipped folder downloaded from here:
 # http://www.st.com/web/en/catalog/tools/PF257904
-STM_DIR=/home/knielsen/devel/study/stm32f4/STM32F4-Discovery_FW_V1.1.0
+STM_DIR=/home/knielsen/devel/study/stm32f4/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0
 
 # This is where the source files are located,
 # which are not in the current directory
@@ -39,12 +39,11 @@ SRCS  += misc.c
 # Startup file written by ST
 # The assembly code in this file is the first one to be
 # executed. Normally you do not change this file.
-SRCS += $(STM_DIR)/Libraries/CMSIS/ST/STM32F4xx/Source/Templates/TrueSTUDIO/startup_stm32f4xx.s
+SRCS += $(STM_DIR)/Libraries/CMSIS/Device/ST/STM32F4xx/Source/Templates/TrueSTUDIO/startup_stm32f40xx.s
 
 # The header files we use are located here
-INC_DIRS  = $(STM_DIR)/Utilities/STM32F4-Discovery
-INC_DIRS += $(STM_DIR)/Libraries/CMSIS/Include
-INC_DIRS += $(STM_DIR)/Libraries/CMSIS/ST/STM32F4xx/Include
+INC_DIRS  = $(STM_DIR)/Libraries/CMSIS/Include
+INC_DIRS += $(STM_DIR)/Libraries/CMSIS/Device/ST/STM32F4xx/Include
 INC_DIRS += $(STM_DIR)/Libraries/STM32F4xx_StdPeriph_Driver/inc
 INC_DIRS += .
 
@@ -77,6 +76,7 @@ DEFS    = -DUSE_STDPERIPH_DRIVER
 #    assert_failed(uint8_t* file, uint32_t line)
 # because it is conditionally used in the library
 # DEFS   += -DUSE_FULL_ASSERT
+DEFS    += -DSTM32F40XX
 
 ## Compiler options
 CFLAGS  = -ggdb
