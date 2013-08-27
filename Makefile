@@ -34,7 +34,19 @@ SRCS  += system_stm32f4xx.c
 SRCS  += stm32f4xx_rcc.c 
 SRCS  += stm32f4xx_gpio.c
 SRCS  += stm32f4xx_usart.c
+SRCS  += stm32f4xx_sdio.c
+SRCS  += stm32f4xx_dma.c
+SRCS  += stm32f4xx_syscfg.c
+SRCS  += stm32f4xx_exti.c
+SRCS  += stm32f4xx_i2c.c
 SRCS  += misc.c
+
+#vpath %.c $(STM_DIR)/Utilities/STM32_EVAL/STM324x7I_EVAL
+#SRCS  += stm324x7i_eval.c
+SRCS  += stm324x7i_eval_sdio_sd.c
+
+SRCS  += my_sdio.c
+
 
 # Startup file written by ST
 # The assembly code in this file is the first one to be
@@ -45,6 +57,8 @@ SRCS += $(STM_DIR)/Libraries/CMSIS/Device/ST/STM32F4xx/Source/Templates/TrueSTUD
 INC_DIRS  = $(STM_DIR)/Libraries/CMSIS/Include
 INC_DIRS += $(STM_DIR)/Libraries/CMSIS/Device/ST/STM32F4xx/Include
 INC_DIRS += $(STM_DIR)/Libraries/STM32F4xx_StdPeriph_Driver/inc
+#INC_DIRS += $(STM_DIR)/Utilities/STM32_EVAL/STM324x7I_EVAL
+INC_DIRS += $(STM_DIR)/Utilities/STM32_EVAL/Common
 INC_DIRS += .
 
 # in case we have to many sources and don't want 
@@ -77,6 +91,7 @@ DEFS    = -DUSE_STDPERIPH_DRIVER
 # because it is conditionally used in the library
 # DEFS   += -DUSE_FULL_ASSERT
 DEFS    += -DSTM32F40XX
+#DEFS    += -DSD_POLLING_MODE
 
 ## Compiler options
 CFLAGS  = -ggdb

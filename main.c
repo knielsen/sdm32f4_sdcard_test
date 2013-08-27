@@ -13,6 +13,10 @@
 
 #include "stm32f4xx.h"
 
+#include <stm324x7i_eval_sdio_sd.h>
+
+#include "my_sdio.h"
+
 
 #define SRAM_SIZE ((uint32_t)(2*1024*1024))
 
@@ -120,6 +124,53 @@ serial_output_hexbyte(USART_TypeDef* USARTx, uint8_t byte)
 {
   serial_output_hexdig(USARTx, byte >> 4);
   serial_output_hexdig(USARTx, byte & 0xf);
+}
+
+
+__attribute__((unused))
+static void
+hexdump_block(USART_TypeDef *USARTx, uint8_t *buf, uint32_t len)
+{
+  uint32_t idx, j;
+
+  idx = 0;
+  for (;;)
+  {
+    if (idx >= len)
+      break;
+
+    serial_output_hexbyte(USARTx, (idx >> 24) & 0xff);
+    serial_output_hexbyte(USARTx, (idx >> 16) & 0xff);
+    serial_output_hexbyte(USARTx, (idx >> 8) & 0xff);
+    serial_output_hexbyte(USARTx, idx & 0xff);
+    serial_puts(USARTx, " ");
+    for (j = 0; j < 16; ++j)
+    {
+      if (idx + j >= len)
+        serial_puts(USARTx, "   ");
+      else
+      {
+        serial_output_hexbyte(USARTx, buf[idx + j]);
+        serial_putchar(USARTx, ' ');
+      }
+    }
+    serial_puts(USARTx, "  ");
+    for (j = 0; j < 16; ++j)
+    {
+      if (idx + j >= len)
+        serial_putchar(USARTx, ' ');
+      else
+      {
+        uint8_t b = buf[idx + j];
+        if (b >= 32 && b <= 127)
+          serial_putchar(USARTx, b);
+        else
+          serial_putchar(USARTx, '.');
+      }
+    }
+    serial_puts(USARTx, "\r\n");
+    idx += 16;
+  }
 }
 
 
@@ -240,13 +291,94 @@ println_float(USART_TypeDef* usart, float f,
 }
 
 
+void SDIO_IRQHandler(void)
+{
+  SD_ProcessIRQSrc();
+}
+
+void SD_SDIO_DMA_IRQHANDLER(void)
+{
+  SD_ProcessDMAIRQ();
+}
+
+
+static void NVIC_Configuration(void)
+{
+  NVIC_InitTypeDef NVIC_InitStructure;
+
+  /* Configure the NVIC Preemption Priority Bits */
+  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
+
+  NVIC_InitStructure.NVIC_IRQChannel = SDIO_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure);
+  NVIC_InitStructure.NVIC_IRQChannel = SD_SDIO_DMA_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+  NVIC_Init(&NVIC_InitStructure);
+}
+
+
+static uint8_t buf[512*4];
+
 int main(void)
 {
+  SD_Error err;
+
   delay(2000000);
   setup_serial();
   setup_led();
   serial_puts(USART2, "Initialising...\r\n");
+  NVIC_Configuration();
   delay(2000000);
+
+  if (SD_Init() == SD_OK)
+    serial_puts(USART2, "SD ok!?!\r\n");
+  else
+    serial_puts(USART2, "SD not ok :-/\r\n");
+  delay(2000000);
+buf[0]=1;buf[1]=2;buf[2]=4;buf[3]=100;buf[511]=254;
+
+/*
+  if ((err = SD_ReadBlock(buf, 0x00, 512)) == SD_OK)
+    serial_puts(USART2, "SD read ok!?!\r\n");
+  else
+  {
+    serial_puts(USART2, "SD read not ok: ");
+    serial_puts(USART2, sdio_error_name(err));
+    serial_puts(USART2, " :-/\r\n");
+  }
+  if (SD_WaitReadOperation())
+    serial_puts(USART2, "SD wait ok!?!\r\n");
+  else
+    serial_puts(USART2, "SD wait not ok :-/\r\n");
+  while (SD_GetStatus() != SD_TRANSFER_OK)
+    ;
+*/
+
+
+  if ((err = SD_ReadMultiBlocks(buf, 0, 512, 4)) == SD_OK)
+    serial_puts(USART2, "SD multiread ok!?!\r\n");
+  else
+  {
+    serial_puts(USART2, "SD multiread not ok: ");
+    serial_puts(USART2, sdio_error_name(err));
+    serial_puts(USART2, " :-/\r\n");
+  }
+  if ((err = SD_WaitReadOperation()) == SD_OK)
+    serial_puts(USART2, "SD wait multi ok!?!\r\n");
+  else
+    serial_puts(USART2, "SD wait multi not ok: ");
+    serial_puts(USART2, sdio_error_name(err));
+    serial_puts(USART2, " :-/\r\n");
+  while (SD_GetStatus() != SD_TRANSFER_OK)
+    ;
+
+
+//for(;;){if (GPIO_ReadInputDataBit(SD_DETECT_GPIO_PORT, SD_DETECT_PIN)) led_on(); else led_off();}
+
+  hexdump_block(USART2, buf, 16);
 
   serial_puts(USART2, "Hello world, ready to blink!\r\n");
 
