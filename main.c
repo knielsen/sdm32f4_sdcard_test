@@ -325,6 +325,7 @@ static uint8_t buf[512*4];
 int main(void)
 {
   SD_Error err;
+  uint32_t count;
 
   delay(2000000);
   setup_serial();
@@ -357,7 +358,9 @@ buf[0]=1;buf[1]=2;buf[2]=4;buf[3]=100;buf[511]=254;
     ;
 */
 
-
+  count = 0;
+loop:
+  println_uint32(USART2, count++);
   if ((err = SD_ReadMultiBlocks(buf, 0, 512, 4)) == SD_OK)
     serial_puts(USART2, "SD multiread ok!?!\r\n");
   else
@@ -369,16 +372,21 @@ buf[0]=1;buf[1]=2;buf[2]=4;buf[3]=100;buf[511]=254;
   if ((err = SD_WaitReadOperation()) == SD_OK)
     serial_puts(USART2, "SD wait multi ok!?!\r\n");
   else
+  {
     serial_puts(USART2, "SD wait multi not ok: ");
     serial_puts(USART2, sdio_error_name(err));
     serial_puts(USART2, " :-/\r\n");
+  }
   while (SD_GetStatus() != SD_TRANSFER_OK)
     ;
 
 
 //for(;;){if (GPIO_ReadInputDataBit(SD_DETECT_GPIO_PORT, SD_DETECT_PIN)) led_on(); else led_off();}
 
-  hexdump_block(USART2, buf, 16);
+  hexdump_block(USART2, buf+512-16, 16);
+
+  delay(13000000);
+  goto loop;
 
   serial_puts(USART2, "Hello world, ready to blink!\r\n");
 
